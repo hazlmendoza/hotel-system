@@ -1,5 +1,5 @@
 from sqlalchemy import String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -25,4 +25,10 @@ class Hotel(Base):
     address: Mapped[str] = mapped_column(
         String(500),
         nullable=False,
+    )
+
+    rooms = relationship(
+        "Room",
+        back_populates="hotel",
+        cascade="all, delete-orphan",
     )

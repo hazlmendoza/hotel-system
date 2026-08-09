@@ -1,28 +1,30 @@
-from app.schemas.hotel import HotelCreate, HotelResponse
-from app.models.user import User
-from app.models.hotel import Hotel
-from app.core.permissions import require_roles
-from app.core.database import get_db
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.permissions import require_roles
+from app.models.room import Room
+from app.models.user import User
+from app.schemas.room import RoomCreate, RoomResponse
+
 
 router = APIRouter(
-    prefix="/api/v1/hotels",
-    tags=["Hotels"],
+    prefix="/api/v1/rooms",
+    tags=["Rooms"],
 )
 
 
 # =========================================================
-# GET ALL HOTELS
-# Any authenticated employee can view hotels
+# GET ALL ROOMS
+# Admin, manager, front desk, housekeeping
 # =========================================================
 
 @router.get(
     "/",
-    response_model=list[HotelResponse],
+    response_model=list[RoomResponse],
 )
-async def get_hotels(
+async def get_rooms(
     current_user: User = Depends(
         require_roles(
             "admin",
@@ -34,23 +36,22 @@ async def get_hotels(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Hotel)
+        select(Room)
     )
 
     return result.scalars().all()
 
 
 # =========================================================
-# GET SINGLE HOTEL
-# Any authenticated employee can view a hotel
+# GET SINGLE ROOM
 # =========================================================
 
 @router.get(
-    "/{hotel_id}",
-    response_model=HotelResponse,
+    "/{room_id}",
+    response_model=RoomResponse,
 )
-async def get_hotel(
-    hotel_id: int,
+async def get_room(
+    room_id: int,
     current_user: User = Depends(
         require_roles(
             "admin",
@@ -62,33 +63,33 @@ async def get_hotel(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Hotel).where(
-            Hotel.id == hotel_id
+        select(Room).where(
+            Room.id == room_id
         )
     )
 
-    hotel = result.scalar_one_or_none()
+    room = result.scalar_one_or_none()
 
-    if hotel is None:
+    if room is None:
         raise HTTPException(
             status_code=404,
-            detail="Hotel not found",
+            detail="Room not found",
         )
 
-    return hotel
+    return room
 
 
 # =========================================================
-# CREATE HOTEL
-# Admin and manager only
+# CREATE ROOM
+# Admin and manager
 # =========================================================
 
 @router.post(
     "/",
-    response_model=HotelResponse,
+    response_model=RoomResponse,
 )
-async def create_hotel(
-    hotel_data: HotelCreate,
+async def create_room(
+    room_data: RoomCreate,
     current_user: User = Depends(
         require_roles(
             "admin",
@@ -97,32 +98,35 @@ async def create_hotel(
     ),
     db: AsyncSession = Depends(get_db),
 ):
-    hotel = Hotel(
-        name=hotel_data.name,
-        description=hotel_data.description,
-        address=hotel_data.address,
+    room = Room(
+        hotel_id=room_data.hotel_id,
+        room_number=room_data.room_number,
+        room_type=room_data.room_type,
+        price_per_night=room_data.price_per_night,
+        capacity=room_data.capacity,
+        status=room_data.status,
     )
 
-    db.add(hotel)
+    db.add(room)
 
     await db.commit()
-    await db.refresh(hotel)
+    await db.refresh(room)
 
-    return hotel
+    return room
 
 
 # =========================================================
-# UPDATE HOTEL
-# Admin and manager only
+# UPDATE ROOM
+# Admin and manager
 # =========================================================
 
 @router.put(
-    "/{hotel_id}",
-    response_model=HotelResponse,
+    "/{room_id}",
+    response_model=RoomResponse,
 )
-async def update_hotel(
-    hotel_id: int,
-    hotel_data: HotelCreate,
+async def update_room(
+    room_id: int,
+    room_data: RoomCreate,
     current_user: User = Depends(
         require_roles(
             "admin",
@@ -132,62 +136,65 @@ async def update_hotel(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Hotel).where(
-            Hotel.id == hotel_id
+        select(Room).where(
+            Room.id == room_id
         )
     )
 
-    hotel = result.scalar_one_or_none()
+    room = result.scalar_one_or_none()
 
-    if hotel is None:
+    if room is None:
         raise HTTPException(
             status_code=404,
-            detail="Hotel not found",
+            detail="Room not found",
         )
 
-    hotel.name = hotel_data.name
-    hotel.description = hotel_data.description
-    hotel.address = hotel_data.address
+    room.hotel_id = room_data.hotel_id
+    room.room_number = room_data.room_number
+    room.room_type = room_data.room_type
+    room.price_per_night = room_data.price_per_night
+    room.capacity = room_data.capacity
+    room.status = room_data.status
 
     await db.commit()
-    await db.refresh(hotel)
+    await db.refresh(room)
 
-    return hotel
+    return room
 
 
 # =========================================================
-# DELETE HOTEL
+# DELETE ROOM
 # Admin only
 # =========================================================
 
 @router.delete(
-    "/{hotel_id}"
+    "/{room_id}"
 )
-async def delete_hotel(
-    hotel_id: int,
+async def delete_room(
+    room_id: int,
     current_user: User = Depends(
         require_roles("admin")
     ),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Hotel).where(
-            Hotel.id == hotel_id
+        select(Room).where(
+            Room.id == room_id
         )
     )
 
-    hotel = result.scalar_one_or_none()
+    room = result.scalar_one_or_none()
 
-    if hotel is None:
+    if room is None:
         raise HTTPException(
             status_code=404,
-            detail="Hotel not found",
+            detail="Room not found",
         )
 
-    await db.delete(hotel)
+    await db.delete(room)
 
     await db.commit()
 
     return {
-        "message": "Hotel deleted successfully"
+        "message": "Room deleted successfully"
     }

@@ -6,9 +6,13 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.core.database import Base
-from app.models.hotel import Hotel
 from app.core.config import settings
 
+from app.models.hotel import Hotel
+from app.models.user import User
+from app.models.room import Room
+from app.models.guest import Guest
+from app.models.booking import Booking
 
 # Alembic Config object
 config = context.config
